@@ -1,0 +1,40 @@
+{
+  "productName": "InnerNode",
+  "version": "0.1.0",
+  "identifier": "com.innernode.app",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "InnerNode",
+        "width": 440,
+        "height": 680,
+        "resizable": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "visible": true,
+        "closable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false,
+      "tooltip": "InnerNode VPN"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "windows": {
+      "nsis": {}
+    }
+  }
+}

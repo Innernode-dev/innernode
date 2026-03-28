@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InnerNode</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:       #0D1117;
+    --bg-card:  #161B22;
+    --bg-el:    #1C2333;
+    --primary:  #4C9EFF;
+    --success:  #3EE09A;
+    --warning:  #FFB020;
+    --danger:   #FF4560;
+    --text:     #F0F6FC;
+    --text-sec: #8B949E;
+    --border:   #21262D;
+    --radius:   12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 20px;
+    gap: 12px;
+  }
+
+  /* ── Шапка ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .settings-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--bg-el);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-sec);
+    transition: background .15s;
+  }
+  .settings-btn:hover { background: #252d40; }
+
+  /* ── Кнопка питания ── */
+  .power-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-sec);
+    transition: color .3s;
+  }
+  .status-text.connected { color: var(--success); }
+
+  .room-label {
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+
+  .ip-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-el);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .ip-badge:hover { background: #252d40; }
+  .ip-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .power-btn {
+    width: 120px; height: 120px;
+    border-radius: 60px;
+    border: 2.5px solid var(--border);
+    background: radial-gradient(circle, var(--bg-el) 0%, var(--bg-card) 100%);
+    cursor: pointer;
+    position: relative;
+    transition: border-color .3s, background .3s, transform .1s;
+    outline: none;
+  }
+  .power-btn:hover { transform: scale(1.04); }
+  .power-btn:active { transform: scale(0.97); }
+  .power-btn.on {
+    border-color: var(--success);
+    background: radial-gradient(circle, #1A3D2B 0%, #0F2218 100%);
+  }
+  .power-btn svg { pointer-events: none; }
+
+  .power-hint {
+    font-size: 11px;
+    color: var(--text-sec);
+  }
+
+  /* ── Ошибка ── */
+  .error-box {
+    background: rgba(255,69,96,.1);
+    border: 1px solid rgba(255,69,96,.3);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: var(--danger);
+    font-size: 12px;
+    text-align: center;
+    display: none;
+  }
+  .error-box.show { display: block; }
+
+  /* ── Лобби ── */
+  .lobby { display: flex; flex-direction: column; gap: 10px; }
+  .lobby.hidden { display: none; }
+
+  .btn-primary {
+    height: 52px;
+    border-radius: 14px;
+    background: var(--primary);
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: opacity .15s, transform .1s;
+    width: 100%;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:active { transform: scale(.98); }
+
+  .btn-secondary {
+    height: 52px;
+    border-radius: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background .15s;
+    width: 100%;
+  }
+  .btn-secondary:hover { background: #1e2530; }
+
+  /* ── Комнаты ── */
+  .rooms-section { display: flex; flex-direction: column; gap: 8px; }
+  .rooms-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .rooms-title { font-size: 12px; font-weight: 600; color: var(--text-sec); }
+  .rooms-count { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+  .room-card {
+    height: 60px;
+    border-radius: 12px;
+    background: var(--bg-el);
+    border: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 12px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .room-card:hover { background: #232b3e; }
+
+  .room-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .room-icon.pub  { background: rgba(62,224,154,.1); }
+  .room-icon.priv { background: rgba(255,176,32,.12); }
+
+  .room-info { flex: 1; overflow: hidden; }
+  .room-name {
+    font-size: 14px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .room-meta { font-size: 12px; color: var(--text-sec); }
+  .room-arrow { color: var(--text-sec); font-size: 18px; }
+
+  /* ── Активная комната ── */
+  .active-room { display: none; flex-direction: column; gap: 12px; }
+  .active-room.show { display: flex; }
+
+  .active-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .active-info {}
+  .active-label { font-size: 11px; color: var(--text-sec); }
+  .active-name  { font-size: 18px; font-weight: 700; }
+
+  .btn-leave {
+    padding: 6px 16px;
+    border-radius: 10px;
+    background: rgba(255,69,96,.12);
+    border: 1px solid rgba(255,69,96,.3);
+    color: var(--danger);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-leave:hover { background: rgba(255,69,96,.22); }
+
+  .peers-table {
+    border-radius: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .peers-header {
+    display: flex; align-items: center;
+    padding: 0 16px; height: 36px;
+    background: var(--bg-el);
+    font-size: 10px; color: var(--text-sec);
+    font-weight: 600;
+  }
+  .peers-header span:first-child { flex: 1; }
+
+  .peer-row {
+    display: flex; align-items: center;
+    padding: 0 16px; height: 48px; gap: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .peer-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .peer-ip {
+    flex: 1; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .peer-ip.me { color: var(--primary); font-weight: 600; }
+  .badge {
+    padding: 3px 8px; border-radius: 5px;
+    font-size: 10px; font-weight: 700;
+  }
+  .badge.host { background: rgba(62,224,154,.15); color: var(--success); }
+  .badge.node { background: var(--bg-el); color: var(--text-sec); }
+  .copy-btn {
+    padding: 4px 10px; border-radius: 7px;
+    background: rgba(76,158,255,.1);
+    border: 1px solid rgba(76,158,255,.2);
+    color: var(--primary); font-size: 11px; font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: rgba(76,158,255,.2); }
+
+  .peers-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-sec);
+    font-size: 12px;
+  }
+
+  /* ── Диалоги ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .overlay.show { display: flex; }
+
+  .dialog {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    width: 300px;
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 24px 48px rgba(0,0,0,.4);
+  }
+  .dialog h3 { font-size: 17px; font-weight: 700; }
+
+  .input-wrap {
+    position: relative; height: 42px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--bg-el);
+  }
+  .input-wrap input {
+    position: absolute; inset: 0;
+    background: transparent;
+    border: none; outline: none;
+    padding: 0 14px;
+    color: var(--text); font-size: 14px;
+    width: 100%;
+  }
+  .input-wrap .placeholder {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text-sec); font-size: 14px;
+    pointer-events: none;
+    transition: opacity .1s;
+  }
+
+  .dialog-btns { display: flex; gap: 10px; }
+  .dialog-btns button {
+    flex: 1; height: 40px; border-radius: 11px;
+    border: none; cursor: pointer;
+    font-size: 14px; font-weight: 700;
+    transition: opacity .15s;
+  }
+  .dialog-btns button:hover { opacity: .85; }
+  .btn-cancel { background: var(--bg-el); color: var(--text-sec); }
+  .btn-confirm { background: var(--primary); color: #fff; }
+  .btn-confirm.warn { background: var(--warning); color: #000; }
+
+  /* ── Спиннер ── */
+  .spinner {
+    display: none;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto;
+  }
+  .spinner.show { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Scroll ── */
+  .scrollable {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .scrollable::-webkit-scrollbar { width: 4px; }
+  .scrollable::-webkit-scrollbar-track { background: transparent; }
+  .scrollable::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Шапка -->
+  <div class="header">
+    <div class="logo">InnerNode</div>
+    <div class="settings-btn" title="Настройки">⚙</div>
+  </div>
+
+  <!-- Кнопка питания -->
+  <div class="power-section">
+    <div class="status-text" id="statusText">Не подключено</div>
+    <div class="room-label" id="roomLabel" style="display:none"></div>
+
+    <div class="ip-badge" id="ipBadge" style="display:none" onclick="copyIP()">
+      <div class="ip-dot"></div>
+      <span id="ipText"></span>
+    </div>
+
+    <button class="power-btn" id="powerBtn" onclick="togglePower()">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <!-- Дуга питания -->
+        <path id="powerArc"
+          d="M 38 72 A 28 28 0 1 1 82 72"
+          fill="none" stroke="#8B949E" stroke-width="5"
+          stroke-linecap="round"/>
+        <!-- Вертикальная линия -->
+        <line id="powerLine"
+          x1="60" y1="32" x2="60" y2="52"
+          stroke="#8B949E" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div class="power-hint" id="powerHint">Нажмите для подключения</div>
+  </div>
+
+  <!-- Ошибка -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Лобби -->
+  <div class="lobby hidden" id="lobby">
+    <button class="btn-primary" onclick="showJoinDialog()">
+      <span>🚪</span> Войти в комнату
+    </button>
+    <button class="btn-secondary" onclick="showCreateDialog()">
+      <span style="color:var(--primary);font-size:18px">+</span> Создать комнату
+    </button>
+
+    <div class="rooms-section" id="roomsSection" style="display:none">
+      <div class="rooms-header">
+        <span class="rooms-title">Активные комнаты</span>
+        <span class="rooms-count" id="roomsCount">0</span>
+      </div>
+      <div class="scrollable" id="roomsList"></div>
+    </div>
+  </div>
+
+  <!-- Активная комната -->
+  <div class="active-room" id="activeRoom">
+    <div class="active-header">
+      <div class="active-info">
+        <div class="active-label">Активная комната</div>
+        <div class="active-name" id="activeRoomName"></div>
+      </div>
+      <button class="btn-leave" onclick="leaveRoom()">Выйти</button>
+    </div>
+
+    <div class="peers-table">
+      <div class="peers-header">
+        <span>IP-адрес</span>
+        <span style="width:52px;text-align:center">Роль</span>
+        <span style="width:48px"></span>
+      </div>
+      <div id="peersList">
+        <div class="peers-empty">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Диалог создания -->
+<div class="overlay" id="createOverlay">
+  <div class="dialog">
+    <h3>Новая комната</h3>
+    <div class="input-wrap">
+      <input type="text" id="createName" oninput="syncPlaceholder('createName','ph1')" autocomplete="off">
+      <span class="placeholder" id="ph1">Название комнаты</span>
+    </div>
+    <div class="input-wrap">
+      <input type="password" id="createPass" oninput="syncPlaceholder('createPass','ph2')" autocomplete="off">
+      <span class="placeholder" id="ph2">Пароль (необязательно)</span>
+    </div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="closeDialogs()">Отмена</button>
+      <button class="btn-confirm" onclick="doCreate()">
+        <span id="createBtnText">Создать</span>
+        <div class="spinner" id="createSpinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Диалог входа -->
+<div class="overlay" id="joinOverlay">
+  <div class="dialog">
+    <h3>Войти в комнату</h3>
+    <div class="input-wrap">
+      <input type="text" id="joinName" oninput="syncPlaceholder('joinName','ph3')" autocomplete="off">
+      <span class="placeholder" id="ph3">Название комнаты</span>
+    </div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="closeDialogs()">Отмена</button>
+      <button class="btn-confirm" onclick="doJoin()">
+        <span id="joinBtnText">Войти</span>
+        <div class="spinner" id="joinSpinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Диалог пароля приватной комнаты -->
+<div class="overlay" id="passOverlay">
+  <div class="dialog">
+    <h3 id="passRoomTitle"></h3>
+    <div style="font-size:11px;color:var(--warning);margin-top:-8px">🔒 Приватная комната</div>
+    <div class="input-wrap">
+      <input type="password" id="passInput" oninput="syncPlaceholder('passInput','ph4')" autocomplete="off">
+      <span class="placeholder" id="ph4">Пароль</span>
+    </div>
+    <div class="dialog-btns">
+      <button class="btn-cancel" onclick="closeDialogs()">Отмена</button>
+      <button class="btn-confirm warn" onclick="doJoinPrivate()">Войти</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const { invoke } = window.__TAURI__.core;
+
+// ── Состояние ─────────────────────────────────────────────────────────────────
+let connected  = false;
+let inRoom     = false;
+let myIP       = '';
+let roomName   = '';
+let refreshInt = null;
+let pendingPrivateRoom = '';
+
+// ── Инициализация ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  // Загружаем последнюю комнату для автовхода (опционально показываем)
+  const last = await invoke('cmd_get_last_room');
+  if (last && last.name) {
+    document.getElementById('joinName').value = last.name;
+    syncPlaceholder('joinName', 'ph3');
+  }
+});
+
+// ── Питание ───────────────────────────────────────────────────────────────────
+function togglePower() {
+  if (connected) {
+    doDisconnect();
+  } else {
+    setConnected(true);
+    fetchRooms();
+  }
+}
+
+function setConnected(val) {
+  connected = val;
+  const btn  = document.getElementById('powerBtn');
+  const arc  = document.getElementById('powerArc');
+  const line = document.getElementById('powerLine');
+  const st   = document.getElementById('statusText');
+  const hint = document.getElementById('powerHint');
+
+  const color = val ? '#3EE09A' : '#8B949E';
+  arc.setAttribute('stroke', color);
+  line.setAttribute('stroke', color);
+
+  if (val) {
+    btn.classList.add('on');
+    st.textContent = 'Выбери комнату';
+    st.classList.add('connected');
+    hint.textContent = 'Нажмите для отключения';
+    document.getElementById('lobby').classList.remove('hidden');
+  } else {
+    btn.classList.remove('on');
+    st.textContent = 'Не подключено';
+    st.classList.remove('connected');
+    hint.textContent = 'Нажмите для подключения';
+    document.getElementById('lobby').classList.add('hidden');
+    document.getElementById('activeRoom').classList.remove('show');
+    document.getElementById('ipBadge').style.display = 'none';
+    document.getElementById('roomLabel').style.display = 'none';
+    stopRefresh();
+  }
+}
+
+async function doDisconnect() {
+  await invoke('cmd_disconnect').catch(() => {});
+  inRoom   = false;
+  roomName = '';
+  myIP     = '';
+  setConnected(false);
+}
+
+// ── Комнаты ───────────────────────────────────────────────────────────────────
+async function fetchRooms() {
+  try {
+    const rooms = await invoke('cmd_get_rooms');
+    renderRooms(rooms);
+  } catch(e) {
+    showError('Ошибка загрузки комнат: ' + e);
+  }
+}
+
+function renderRooms(rooms) {
+  const sec   = document.getElementById('roomsSection');
+  const list  = document.getElementById('roomsList');
+  const count = document.getElementById('roomsCount');
+
+  if (!rooms || rooms.length === 0) {
+    sec.style.display = 'none';
+    return;
+  }
+  sec.style.display = 'flex';
+  count.textContent = rooms.length;
+
+  list.innerHTML = rooms.map(r => `
+    <div class="room-card" onclick="onRoomClick('${esc(r.name)}', ${r.is_private})">
+      <div class="room-icon ${r.is_private ? 'priv' : 'pub'}">
+        ${r.is_private ? '🔒' : '🔓'}
+      </div>
+      <div class="room-info">
+        <div class="room-name">${esc(r.name)}</div>
+        <div class="room-meta">${r.users}/${r.max} участников</div>
+      </div>
+      <div class="room-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+function onRoomClick(name, isPrivate) {
+  if (isPrivate) {
+    pendingPrivateRoom = name;
+    document.getElementById('passRoomTitle').textContent = name;
+    document.getElementById('passInput').value = '';
+    syncPlaceholder('passInput', 'ph4');
+    document.getElementById('passOverlay').classList.add('show');
+  } else {
+    joinRoom(name, '');
+  }
+}
+
+// ── Создать комнату ───────────────────────────────────────────────────────────
+function showCreateDialog() {
+  document.getElementById('createName').value = '';
+  document.getElementById('createPass').value = '';
+  syncPlaceholder('createName', 'ph1');
+  syncPlaceholder('createPass', 'ph2');
+  document.getElementById('createOverlay').classList.add('show');
+}
+
+async function doCreate() {
+  const name = document.getElementById('createName').value.trim();
+  const pass = document.getElementById('createPass').value.trim();
+  if (!name) return;
+
+  setBusy('create', true);
+  closeDialogs();
+  hideError();
+
+  try {
+    const res = await invoke('cmd_create_room', {
+      name,
+      password: pass || null,
+    });
+    onJoined(res.room_name, res.client_ip);
+  } catch(e) {
+    showError(String(e));
+  } finally {
+    setBusy('create', false);
+  }
+}
+
+// ── Войти в комнату ───────────────────────────────────────────────────────────
+function showJoinDialog() {
+  document.getElementById('joinOverlay').classList.add('show');
+}
+
+async function doJoin() {
+  const name = document.getElementById('joinName').value.trim();
+  if (!name) return;
+  joinRoom(name, '');
+}
+
+async function doJoinPrivate() {
+  const pass = document.getElementById('passInput').value.trim();
+  if (!pass) return;
+  closeDialogs();
+  joinRoom(pendingPrivateRoom, pass);
+}
+
+async function joinRoom(name, pass) {
+  setBusy('join', true);
+  closeDialogs();
+  hideError();
+
+  try {
+    const res = await invoke('cmd_join_room', {
+      name,
+      password: pass || null,
+    });
+    onJoined(res.room_name, res.client_ip);
+  } catch(e) {
+    showError(String(e));
+  } finally {
+    setBusy('join', false);
+  }
+}
+
+function onJoined(name, ip) {
+  inRoom   = true;
+  roomName = name;
+  myIP     = ip;
+
+  document.getElementById('activeRoomName').textContent = name;
+  document.getElementById('ipText').textContent = ip;
+  document.getElementById('ipBadge').style.display = 'flex';
+  document.getElementById('roomLabel').textContent = 'Комната: ' + name;
+  document.getElementById('roomLabel').style.display = 'block';
+
+  const st = document.getElementById('statusText');
+  st.textContent = 'Подключено';
+  st.classList.add('connected');
+
+  document.getElementById('lobby').classList.add('hidden');
+  document.getElementById('activeRoom').classList.add('show');
+
+  fetchPeers();
+  startRefresh();
+}
+
+// ── Выйти из комнаты ──────────────────────────────────────────────────────────
+async function leaveRoom() {
+  await invoke('cmd_leave_room').catch(() => {});
+  inRoom   = false;
+  roomName = '';
+  myIP     = '';
+  stopRefresh();
+
+  document.getElementById('activeRoom').classList.remove('show');
+  document.getElementById('ipBadge').style.display = 'none';
+  document.getElementById('roomLabel').style.display = 'none';
+  document.getElementById('statusText').textContent = 'Выбери комнату';
+  document.getElementById('lobby').classList.remove('hidden');
+  fetchRooms();
+}
+
+// ── Пиры ─────────────────────────────────────────────────────────────────────
+async function fetchPeers() {
+  if (!inRoom) return;
+  try {
+    const peers = await invoke('cmd_get_peers', { roomName });
+    renderPeers(peers);
+  } catch(e) {}
+}
+
+function renderPeers(peers) {
+  const list = document.getElementById('peersList');
+  if (!peers || peers.length === 0) {
+    list.innerHTML = '<div class="peers-empty">Нет участников</div>';
+    return;
+  }
+  list.innerHTML = peers.map(p => {
+    const isMe   = p.ip === myIP;
+    const isHost = p.role === 'host';
+    const dotCol = isHost ? '#3EE09A' : (isMe ? '#4C9EFF' : '#8B949E');
+    return `
+      <div class="peer-row">
+        <div class="peer-dot" style="background:${dotCol}"></div>
+        <div class="peer-ip ${isMe ? 'me' : ''}">${esc(p.ip)}${isMe ? ' (я)' : ''}</div>
+        <span class="badge ${isHost ? 'host' : 'node'}">${isHost ? 'HOST' : 'NODE'}</span>
+        <button class="copy-btn" onclick="copyText('${esc(p.ip)}')">IP</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Авто-обновление ───────────────────────────────────────────────────────────
+function startRefresh() {
+  stopRefresh();
+  refreshInt = setInterval(() => {
+    if (inRoom) fetchPeers();
+    else if (connected) fetchRooms();
+  }, 5000);
+}
+
+function stopRefresh() {
+  if (refreshInt) { clearInterval(refreshInt); refreshInt = null; }
+}
+
+// ── Утилиты ───────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.classList.add('show');
+  setTimeout(() => box.classList.remove('show'), 6000);
+}
+function hideError() {
+  document.getElementById('errorBox').classList.remove('show');
+}
+
+function copyIP() { copyText(myIP); }
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+function closeDialogs() {
+  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
+}
+
+function syncPlaceholder(inputId, phId) {
+  const val = document.getElementById(inputId).value;
+  document.getElementById(phId).style.opacity = val ? '0' : '1';
+}
+
+function setBusy(which, busy) {
+  const txt = document.getElementById(which + 'BtnText');
+  const sp  = document.getElementById(which + 'Spinner');
+  if (txt) txt.style.display = busy ? 'none' : '';
+  if (sp)  sp.classList.toggle('show', busy);
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+// Закрыть диалог по клику на overlay
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => {
+    if (e.target === o) closeDialogs();
+  });
+});
+</script>
+</body>
+</html>
